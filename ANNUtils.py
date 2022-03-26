@@ -192,6 +192,13 @@ def predict(X, parametres):
   Af = activations[ -1 ]
   return Af >= 0.5
 
+def predict_digits(X, parametres):
+  activations = forward_propagation(X, parametres)
+  Af = activations[ -1 ]
+  test = Af == np.amax(Af)
+  test2 = test[ 0 ]
+  return np.where(Af == np.amax(Af))[0]
+
 def neural_network2(X, y, X_test = 0, y_test = 0, n1=32, learning_rate = 0.1, n_iter = 1000, printTest = False):
 
     # initialisation parametres
@@ -301,9 +308,66 @@ def neural_network(X, y, X_test = 0, y_test = 0, neuronnesinternes = [ 32 ], lea
 
     return parametres
 
+def neural_network_digits(X, y, X_test = 0, y_test = 0, neuronnesinternes = [ 32 ], learning_rate = 0.1, n_iter = 1000, printTest = False):
+
+    # initialisation parametres
+    n0 = X.shape[0]
+    neuronnes = neuronnesinternes 
+    neuronnes.insert( 0, n0 )
+    n2 = y.shape[0]
+    neuronnes.append( n2 )
+    np.random.seed(0)
+    parametres = initialisation( neuronnes )
+
+    train_loss = []
+    train_acc = []
+    history = []
+
+    loss_test = []
+    acc_test = []
+
+    # gradient descent
+    for i in tqdm(range(n_iter)):
+        activations = forward_propagation( X, parametres )
+        gradients = back_propagation( X, y, parametres, activations )
+        parametres = update( gradients, parametres, learning_rate )
+
+        if i % 10 == 0:
+            # Plot courbe d'apprentissage
+            #train_loss.append(log_loss(y.flatten(), activations[ -1 ].flatten()))
+            y_pred = predict_digits(X, parametres)
+            train_acc.append(accuracy_score(y.flatten(), y_pred.flatten()))
+
+            #Test
+            if printTest:
+                activations_test = forward_propagation( X_test, parametres )
+                Af_test = activations_test[ -1 ]
+                #loss_test.append( log_loss( y_test.flatten(), Af_test.flatten() ) )
+                y_pred = predict_digits( X_test, parametres )
+                acc_test.append( accuracy_score( y_test.flatten(), y_pred.flatten() ) )
+            
+            history.append([parametres.copy(), train_loss, train_acc, i])
+
+
+    plt.figure(figsize=(12, 4))
+    plt.subplot(1, 2, 1)
+    plt.plot(train_loss, label='train loss')
+    if printTest:
+        plt.plot( loss_test, label = 'test loss' )
+    plt.legend()
+    plt.subplot(1, 2, 2)
+    plt.plot(train_acc, label='train acc')
+    if printTest:
+        plt.plot( acc_test, label = 'test acc' )
+    plt.legend()
+    plt.show()
+
+    return parametres
+
+
 def normalize( X ):
     X_trainNorm = X.astype(np.double)
-    for i in range(X_trainNorm.shape[0]):
+    for i in tqdm(range(X_trainNorm.shape[0])):
         for x in range(X_trainNorm.shape[1]):
             X_trainNorm[i][x] = X_trainNorm[i][x] / 255
     return X_trainNorm
