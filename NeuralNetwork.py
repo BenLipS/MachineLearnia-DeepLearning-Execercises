@@ -19,8 +19,6 @@ def execFirstExample():
 
 #Cat and dogs example
 
-from utilities import *
-
 def execCatsDogs():
     
     X_train, y_train, X_test, y_test = load_data()
@@ -68,6 +66,8 @@ def execCatsDogs():
     print('dimensions de y_train_reshape:', y_train_reshape.shape)
     print('dimensions de X_test_reshape:', X_test_reshape.shape)
     print('dimensions de y_test_reshape:', y_test_reshape.shape)
+
+    print("result de y image 100 : ", y_test_reshape[ 0 ][ 100 ])
 
     #params = neural_network2(X_train_reshape, y_train_reshape, X_test_reshape, y_test_reshape, n1 = 128, learning_rate = 0.001, n_iter=80000, printTest = True)
     params = neural_network(X_train_reshape, y_train_reshape, X_test_reshape, y_test_reshape, neuronnesinternes = [ 16, 32, 32, 16 ], learning_rate = 0.05, n_iter=500000, printTest = True)
@@ -161,4 +161,7 @@ print(y_test_reshape.shape)
 X_train_reshape = normalize( X_train_reshape )
 X_test_reshape = normalize( X_test_reshape )
 
-neural_network_digits(X_train_reshape, y_train_reshape, X_test_reshape, y_test_reshape, neuronnesinternes = [ 16 ], learning_rate = 0.1, n_iter = 10000, printTest = True)
+print(X_train_reshape[100])
+print(y_train_reshape[0][100] )
+
+neural_network_digits(X_train_reshape, y_train_reshape, X_test_reshape, y_test_reshape, neuronnesinternes = [ 16, 32, 64, 128, 64, 32, 16 ], learning_rate = 0.01, n_iter = 100000, printTest = True)

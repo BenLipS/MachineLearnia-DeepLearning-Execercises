@@ -134,6 +134,42 @@ def back_propagation(X, y, parametres, activations):
     
     return gradients
 
+def back_propagation_digits(X, y, parametres, activations):
+
+    A = activations
+    W = parametres['parametresW']
+
+    m = y.shape[1]
+    
+    gradientsdW = []
+    gradientsdb = []
+
+    dZ = A[ len( W ) - 1 ] - transformeVectorOfDigitsToMatrixOfVectors ( y[0] )
+    dW = 1 / m * dZ.dot(A[ len( W ) - 2 ].T)
+    db = 1 / m * np.sum(dZ, axis=1, keepdims = True)
+    gradientsdW.insert(0, dW)
+    gradientsdb.insert(0, db)
+
+    for i in range( 1, len( W ) - 1 ):
+        dZ = np.dot(W[ len( W ) - i ].T, dZ) * A[ len( W ) - i - 1 ] * ( 1 - A[ len( W ) - i - 1 ] )
+        dW = 1 / m * dZ.dot(A[ len( W ) - i - 2].T)
+        db = 1 / m * np.sum(dZ, axis=1, keepdims = True)
+        gradientsdW.insert(0, dW)
+        gradientsdb.insert(0, db)
+
+    dZ = np.dot(W[ 1 ].T, dZ) * A[ 0 ] * ( 1 - A[ 0 ] )
+    dW = 1 / m * dZ.dot(X.T)
+    db = 1 / m * np.sum(dZ, axis=1, keepdims = True)
+    gradientsdW.insert(0, dW)
+    gradientsdb.insert(0, db)
+
+    gradients = {
+        'gradientsdW' : gradientsdW,
+        'gradientsdb' : gradientsdb
+    }
+    
+    return gradients
+
 def update2(gradients, parametres, learning_rate):
 
     W1 = parametres['W1']
@@ -193,11 +229,20 @@ def predict(X, parametres):
   return Af >= 0.5
 
 def predict_digits(X, parametres):
-  activations = forward_propagation(X, parametres)
-  Af = activations[ -1 ]
-  test = Af == np.amax(Af)
-  test2 = test[ 0 ]
-  return np.where(Af == np.amax(Af))[0]
+    activations = forward_propagation(X, parametres)
+    listPred = []
+    listConfidencePred = []
+    Af = activations[ -1 ]
+    for i in range(len(Af[0])):
+        max = 0
+        pred = 0
+        for j in range(10):
+            if Af[j][i] > max:
+                max = Af[j][i]
+                pred = j
+        listPred.append(pred)
+        listConfidencePred.append( max )
+    return ( np.array(listPred), np.array(listConfidencePred) )
 
 def neural_network2(X, y, X_test = 0, y_test = 0, n1=32, learning_rate = 0.1, n_iter = 1000, printTest = False):
 
@@ -314,8 +359,8 @@ def neural_network_digits(X, y, X_test = 0, y_test = 0, neuronnesinternes = [ 32
     n0 = X.shape[0]
     neuronnes = neuronnesinternes 
     neuronnes.insert( 0, n0 )
-    n2 = y.shape[0]
-    neuronnes.append( n2 )
+    nf = 10
+    neuronnes.append( nf )
     np.random.seed(0)
     parametres = initialisation( neuronnes )
 
@@ -329,21 +374,35 @@ def neural_network_digits(X, y, X_test = 0, y_test = 0, neuronnesinternes = [ 32
     # gradient descent
     for i in tqdm(range(n_iter)):
         activations = forward_propagation( X, parametres )
-        gradients = back_propagation( X, y, parametres, activations )
+        gradients = back_propagation_digits( X, y, parametres, activations )
         parametres = update( gradients, parametres, learning_rate )
 
         if i % 10 == 0:
             # Plot courbe d'apprentissage
-            #train_loss.append(log_loss(y.flatten(), activations[ -1 ].flatten()))
-            y_pred = predict_digits(X, parametres)
+            #confidence = []
+            #for j in range( y.shape[1]):
+            #    test = y.flatten()
+            #    index = test[j] - 1
+            #    confidence.append( activations[ -1 ][ index ][ j ])
+            #test = np.full((300,), [1])
+            #test2 = np.array(confidence).flatten()
+            #train_loss.append(log_loss(np.full((300,),[1]), np.array(confidence).flatten()))
+            y_pred = predict_digits(X, parametres)[0]
+            test = y.flatten()
+            test2 = y_pred.flatten()
             train_acc.append(accuracy_score(y.flatten(), y_pred.flatten()))
 
             #Test
             if printTest:
                 activations_test = forward_propagation( X_test, parametres )
                 Af_test = activations_test[ -1 ]
-                #loss_test.append( log_loss( y_test.flatten(), Af_test.flatten() ) )
-                y_pred = predict_digits( X_test, parametres )
+                #confidence = []
+                #for j in range( y_test.shape[1]):
+                #    test = y_test.flatten()
+                #    index = test[j] - 1
+                #    confidence.append( Af_test[ index ][ j ])
+                #loss_test.append( log_loss( np.full((300,), [1]), np.array( confidence ).flatten() ) )
+                y_pred = predict_digits( X_test, parametres )[0]
                 acc_test.append( accuracy_score( y_test.flatten(), y_pred.flatten() ) )
             
             history.append([parametres.copy(), train_loss, train_acc, i])
@@ -371,3 +430,29 @@ def normalize( X ):
         for x in range(X_trainNorm.shape[1]):
             X_trainNorm[i][x] = X_trainNorm[i][x] / 255
     return X_trainNorm
+
+import h5py
+import numpy as np
+
+
+def load_data():
+    train_dataset = h5py.File('C:/Users/benoi/Desktop/FirstIA/datasets/trainset.hdf5', "r")
+    X_train = np.array(train_dataset["X_train"][:]) # your train set features
+    y_train = np.array(train_dataset["Y_train"][:]) # your train set labels
+
+    test_dataset = h5py.File('C:/Users/benoi/Desktop/FirstIA/datasets/testset.hdf5', "r")
+    X_test = np.array(test_dataset["X_test"][:]) # your train set features
+    y_test = np.array(test_dataset["Y_test"][:]) # your train set labels
+    
+    return X_train, y_train, X_test, y_test
+
+def transformDigitToVector ( n ):
+    vector = np.zeros((10,1))
+    vector[ n - 1 ] = 1
+    return vector
+
+def transformeVectorOfDigitsToMatrixOfVectors ( y ):
+    matrix = np.zeros( ( 10, y.shape[0] ) )
+    for i in range( len(y) ):
+        matrix[ y[i] - 1 ][ i ] = 1
+    return matrix
